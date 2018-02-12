@@ -5,16 +5,6 @@ class Runner
   def initialize
     @server = Server.new
     @server.listens
-    @count = 0
-  end
-
-  def listens
-    loop do
-      @count += 1
-      session = server.accept
-      session.puts "Hello World (#{@count})"
-      socket.close
-    end
   end
 
   def responds

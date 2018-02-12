@@ -1,6 +1,6 @@
 require 'minitest/autorun'
 require 'minitest/pride'
-require './lib/run_server.rb'
+require './lib/runner.rb'
 
 class RunnerTest < Minitest::Test
   def test_runner_initializes
