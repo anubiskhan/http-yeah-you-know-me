@@ -1,9 +1,14 @@
 require 'socket'
 
 class Server
-  attr_reader :tcp_server, :client
+  attr_reader :server, :client. :request_lines
   def initialize(port)
-    @tcp_server = TCPServer.new(port)
-    @client = tcp_server.accept
+    @server = TCPServer.new(port)
+    @client = server.accept
+    @request_lines = []
+  end
+
+  def get_request
+    @client = @server.gets
   end
 end
