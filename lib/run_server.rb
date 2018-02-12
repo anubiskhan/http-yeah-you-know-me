@@ -1,9 +1,9 @@
-require_relative 'http_server.rb'
+require_relative 'server.rb'
 
 class Runner
   attr_reader :server
   def initialize
-    @server = Server.new
+    @server = Server.new(9292)
   end
 
   def listens
@@ -20,5 +20,7 @@ class Runner
           "server: ruby",
           "content-type: text/html; charset=iso-8859-1",
           "content-length: #{output.length}\r\n\r\n"].join("\r\n")
+    @server.client.puts headers
+    @server.client.puts response
   end
 end
