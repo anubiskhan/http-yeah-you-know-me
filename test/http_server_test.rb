@@ -1,6 +1,6 @@
 require 'minitest/autorun'
 require 'minitest/pride'
-require './lib/http_server.rb'
+require './lib/server.rb'
 
 class ServerTest < Minitest::Test
   def test_server_initializes
