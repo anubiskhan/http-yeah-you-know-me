@@ -1,9 +1,11 @@
-require_relative 'server.rb'
+require './lib/server.rb'
+require 'pry'
 
 class Runner
   attr_reader :server
   def initialize
     @count = 0
+    @request = []
     @server = Server.new
     listens
   end
@@ -11,12 +13,15 @@ class Runner
   def listens
     loop do
       session = @server.tcp_server.accept
-      session.gets
+      while line = session.gets and !line.chomp.empty?
+        @request << line.chomp
+      end
       @count += 1
+      puts @request.inspect
       session.puts header(response.length)
       session.puts response
       session.close
-      break if @count > 3
+      # break if @count > 3
     end
   end
 
@@ -35,14 +40,15 @@ class Runner
   end
 
   def diagnostics
+    #Needs to take the parts from request array and appropriately place them
     diag =
-      'Verb: POST
-      Path: /
-      Protocol: HTTP/1.1
-      Host: 127.0.0.1
-      Port: 9292
-      Origin: 127.0.0.1
-      Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+      "Verb: #{@request[0].split[0]}
+      Path: #{@request[0].split[1]}
+      Protocol: #{@request[0].split[2]}
+      Host: #{@request[1].split[1].split(':')[0]}
+      Port: #{@request[1].split[1].split(':')[1]}
+      Origin: #{@request[1].split[1].split(':')[0]}
+      Accept: #{@request[6].split[1]}"
   end
 end
 
