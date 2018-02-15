@@ -30,6 +30,7 @@ class Runner
     return hello_response(request) if path(request) == '/hello'
     return datetime_response(request) if path(request) == '/datetime'
     return shutdown_response(request) if path(request) == '/shutdown'
+    return word_search(request) if path(request).include? '/word_search'
   end
 
   def header(output)
@@ -70,6 +71,17 @@ class Runner
 
   def shutdown_response(request)
     response = "<pre> Total Requests: (#{@count})\n #{parser(request)} </pre>"
+    "<html><head></head><body>#{response}</body></html>"
+  end
+
+  def word_search(request)
+    word = request[0].split[1].split('?')[1].downcase
+    if File.read('/usr/share/dict/words').split.include?(word)
+      is_word = "#{word} is a known word"
+    else
+      is_word = "#{word} is not a known word"
+    end
+    response = "<pre> #{is_word}\n #{parser(request)} </pre>"
     "<html><head></head><body>#{response}</body></html>"
   end
 
