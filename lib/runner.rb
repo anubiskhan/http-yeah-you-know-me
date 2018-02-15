@@ -13,33 +13,23 @@ class Runner
   def listens
     loop do
       session = @server.tcp_server.accept
-      request = []
-      while line = session.gets and !line.chomp.empty?
-        request << line.chomp
-      end
-      @count += 1
-      puts request.inspect
-      session.puts header(response(request).length)
-      session.puts response(request)
+      request(session)
+      session.puts header(@resp.length)
+      session.puts @resp
       session.close
-      # break if @count > 3
+      break if @resp.include?('Total Requests:')
     end
   end
 
+  def path(request)
+    request[0].split[1]
+  end
+
   def response(request)
-    if request[0].split[1] == '/'
-      response = "<pre>" + diagnostics(request) + "</pre>"
-    elsif request[0].split[1] == '/hello'
-      @hello_count += 1
-      #count is doubling because of lines 22/23 double call
-      response = "<pre>" + "Hello World (#{@hello_count/2})\n" + "</pre>"
-    elsif request[0].split[1] == '/datetime'
-      response = "<pre>" + "#{Time.now.strftime('%a, %e %b %Y %H:%M:%S %z')}\n" + "</pre>"
-    elsif request[0].split[1] == '/shutdown'
-      response = "<pre>" + "Total Requests: (#{@count})\n" + "</pre>"
-      
-    end
-    output = "<html><head></head><body>#{response}</body></html>"
+    return root_response(request) if path(request) == '/'
+    return hello_response(request) if path(request) == '/hello'
+    return datetime_response(request) if path(request) == '/datetime'
+    return shutdown_response(request) if path(request) == '/shutdown'
   end
 
   def header(output)
@@ -51,16 +41,57 @@ class Runner
       "content-length: #{output}\r\n\r\n"].join("\r\n")
   end
 
-  def diagnostics(request)
-    #Needs to take the parts from request array and appropriately place them
-    diag =
-      "Verb: #{request[0].split[0]}
-      Path: #{request[0].split[1]}
-      Protocol: #{request[0].split[2]}
-      Host: #{request[1].split[1].split(':')[0]}
-      Port: #{request[1].split[1].split(':')[1]}
-      Origin: #{request[1].split[1].split(':')[0]}
-      Accept: #{request[6].split[1]}"
+
+  def request(session)
+    request = []
+    while line = session.gets and !line.chomp.empty?
+      request << line.chomp
+    end
+    @count += 1
+    puts request.inspect
+    @resp = response(request)
+  end
+
+  def root_response(request)
+    response = "<pre> #{parser(request)} </pre>"
+    "<html><head></head><body>#{response}</body></html>"
+  end
+
+  def hello_response(request)
+    response = "<pre> Hello World (#{@hello_count})\n #{parser(request)} </pre>"
+    @hello_count += 1
+    "<html><head></head><body>#{response}</body></html>"
+  end
+
+  def datetime_response(request)
+    response = "<pre> #{Time.now.strftime('%a, %e %b %Y %H:%M:%S %z')}\n #{parser(request)} </pre>"
+    "<html><head></head><body>#{response}</body></html>"
+  end
+
+  def shutdown_response(request)
+    response = "<pre> Total Requests: (#{@count})\n #{parser(request)} </pre>"
+    "<html><head></head><body>#{response}</body></html>"
+  end
+
+  def parser(request)
+    @vpp = request.shift
+    @host = request.shift
+    @info = {}
+    request.each do |spec|
+      spec = spec.split if spec.include?(':')
+      @info[spec[0]] = spec[1]
+    end
+    diagnostic
+  end
+
+  def diagnostic
+    "Verb: #{@vpp.split[0]}
+    Path: #{@vpp.split[1]}
+    Protocol: #{@vpp.split[2]}
+    Host: #{@host.split[1].split(':')[0]}
+    Port: #{@host.split[1].split(':')[1]}
+    Origin: #{@host.split[1].split(':')[0]}
+    Accept: #{@info['Accept:']}"
   end
 end
 
