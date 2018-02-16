@@ -25,7 +25,7 @@ class GameTest < Minitest::Test
     game = Game.new
     game.post_game(0)
     game.post_game(101)
-
-    assert_equal 'There have been 2 and those guesses were ["0. Too low!", "101. Too high!"]', game.get_game
+    expected = 'There have been 2 and those guesses were ["0. Too low!", "101. Too high!"]'
+    assert_equal expected, game.get_game
   end
 end

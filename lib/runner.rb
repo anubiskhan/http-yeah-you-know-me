@@ -19,7 +19,6 @@ class Runner
       request(@session)
       @session.puts header(@resp.length)
       @session.puts @resp
-      binding.pry
       @session.close
       break if @resp.include?('Total Requests:')
     end
@@ -37,14 +36,8 @@ class Runner
     return word_search(request) if path(request).include? '/word_search'
     return game_time(request) if path(request) == '/game'
     return error_response(request) if path(request) == '/force_error'
-    if path(request).include? '/start_game'
-      if @vpp.split[0] == 'POST'
-        start_game(request)
-      else
-        "<html><head></head><body> Did you mean to POST to /start_game? </body></html>"
-      end
-    end
-    return not_found(request)
+    return handle_post_game(request) if path(request).include? '/start_game'
+    not_found(request)
   end
 
   def request(session)
@@ -54,27 +47,27 @@ class Runner
     end
     parser(request)
     @count += 1
-    # puts request.inspect
+    puts request.inspect
     @resp = response(request)
   end
 
-  def root_response(request)
+  def root_response(_request)
     response = "<pre> #{diagnostic} </pre>"
     "<html><head></head><body>#{response}</body></html>"
   end
 
-  def hello_response(request)
+  def hello_response(_request)
     response = "<pre> Hello World (#{@hello_count})\n #{diagnostic} </pre>"
     @hello_count += 1
     "<html><head></head><body>#{response}</body></html>"
   end
 
-  def datetime_response(request)
+  def datetime_response(_request)
     response = "<pre> #{Time.now.strftime('%a, %e %b %Y %H:%M:%S %z')}\n #{diagnostic} </pre>"
     "<html><head></head><body>#{response}</body></html>"
   end
 
-  def shutdown_response(request)
+  def shutdown_response(_request)
     response = "<pre> Total Requests: (#{@count})\n #{diagnostic} </pre>"
     "<html><head></head><body>#{response}</body></html>"
   end
@@ -90,17 +83,25 @@ class Runner
     "<html><head></head><body>#{response}</body></html>"
   end
 
-  def error_response(request)
+  def handle_post_game(request)
+    if @vpp.split[0] == 'POST'
+      start_game(request)
+    else
+      '<html><head></head><body> Did you mean to POST to /start_game? </body></html>'
+    end
+  end
+
+  def error_response(_request)
     redirect500
-    response = "<pre> #{@status}\n </pre>"
+    "<pre> #{@status}\n </pre>"
   end
 
-  def not_found(request)
+  def not_found(_request)
     redirect404
-    response = "<pre> #{@status} </pre>"
+    "<pre> #{@status} </pre>"
   end
 
-  def start_game(request)
+  def start_game(_request)
     if @game.nil?
       redirect301
       @game = Game.new
@@ -165,8 +166,8 @@ class Runner
       "http/1.1 #{@status}",
       "Location: #{@redirect_path}",
       "date: #{Time.now.strftime('%a, %e %b %Y %H:%M:%S %z')}",
-      "server: ruby",
-      "content-type: text/html; charset=iso-8859-1",
+      'server: ruby',
+      'content-type: text/html; charset=iso-8859-1',
       "content-length: #{length}\r\n\r\n"].join("\r\n")
   end
 
