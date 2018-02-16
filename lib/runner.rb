@@ -31,6 +31,8 @@ class Runner
     return datetime_response(request) if path(request) == '/datetime'
     return shutdown_response(request) if path(request) == '/shutdown'
     return word_search(request) if path(request).include? '/word_search'
+    return start_game(request) if path(request).include? '/start_game'
+    return game_time(request) if path(request).include? '/game'
   end
 
   def header(output)
@@ -49,7 +51,7 @@ class Runner
       request << line.chomp
     end
     @count += 1
-    puts request.inspect
+    # puts request.inspect
     @resp = response(request)
   end
 
@@ -83,6 +85,20 @@ class Runner
     end
     response = "<pre> #{is_word}\n #{parser(request)} </pre>"
     "<html><head></head><body>#{response}</body></html>"
+  end
+
+  def start_game(request)
+    @game = Game.new
+    response = "<pre> Good luck!\n #{parser(request)} </pre>"
+    "<html><head></head><body>#{response}</body></html>"
+  end
+
+  def game_time(request)
+    if request[0].split[0] == 'POST'
+      @game.post_game(@guess)
+    elsif request[0].split[0] == 'GET'
+      @game.get_game
+    end
   end
 
   def parser(request)
