@@ -35,7 +35,8 @@ class Runner
     return datetime_response(request) if path(request) == '/datetime'
     return shutdown_response(request) if path(request) == '/shutdown'
     return word_search(request) if path(request).include? '/word_search'
-    return game_time(request) if path(request).include? '/game'
+    return game_time(request) if path(request) == '/game'
+    return error_response(request) if path(request) == '/force_error'
     if path(request).include? '/start_game'
       if @vpp.split[0] == 'POST'
         start_game(request)
@@ -43,6 +44,7 @@ class Runner
         "<html><head></head><body> Did you mean to POST to /start_game? </body></html>"
       end
     end
+    return not_found(request)
   end
 
   def request(session)
@@ -88,33 +90,63 @@ class Runner
     "<html><head></head><body>#{response}</body></html>"
   end
 
+  def error_response(request)
+    redirect500
+    response = "<pre> #{@status}\n </pre>"
+  end
+
+  def not_found(request)
+    redirect404
+    response = "<pre> #{@status} </pre>"
+  end
+
   def start_game(request)
-    redirect
-    @game = Game.new
-    response = "<pre> Good luck!\n #{diagnostic} </pre>"
+    if @game.nil?
+      redirect301
+      @game = Game.new
+      response = "<pre> Good luck!\n #{diagnostic} </pre>"
+    else
+      redirect403
+      response = "<pre> #{@status}\n #{diagnostic} </pre>"
+    end
     "<html><head></head><body>#{response}</body></html>"
   end
 
   def game_time(request)
     if request[0].split[0] == 'POST'
-      redirect
+      redirect301
       @content_length = @info['Content-Length:'].to_i
       @guess = @session.read(@content_length).split[-2].to_i
       response = "<pre> #{@game.post_game(@guess)}\n #{diagnostic} </pre>"
     elsif request[0].split[0] == 'GET'
-      fundirect
-      response = "<pre> #{@game.get_game}\n #{diagnostic} </pre>"
+      redirect200
+      response = "<pre> #{@game.game_getter}\n #{diagnostic} </pre>"
     end
     "<html><head></head><body>#{response}</body></html>"
   end
 
-  def redirect
-    @status = '302'
+  def redirect200
+    @status = '200 ok'
+    @location = nil
+  end
+
+  def redirect301
+    @status = '301'
     @redirect_path = '/game'
   end
 
-  def fundirect
-    @status = '200 ok'
+  def redirect403
+    @status = '403 Forbidden'
+    @redirect_path = nil
+  end
+
+  def redirect404
+    @status = '404 Not Found'
+    @location = nil
+  end
+
+  def redirect500
+    @status = '500 Internal Server Error'
     @location = nil
   end
 
