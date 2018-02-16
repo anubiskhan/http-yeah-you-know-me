@@ -8,6 +8,8 @@ class Runner
     @count = 0
     @hello_count = 0
     @server = Server.new
+    @status = '200 ok'
+    @redirect_path = nil
     listens
   end
 
@@ -33,19 +35,15 @@ class Runner
     return datetime_response(request) if path(request) == '/datetime'
     return shutdown_response(request) if path(request) == '/shutdown'
     return word_search(request) if path(request).include? '/word_search'
-    return start_game(request) if path(request).include? '/start_game'
     return game_time(request) if path(request).include? '/game'
+    if path(request).include? '/start_game'
+      if @vpp.split[0] == 'POST'
+        start_game(request)
+      else
+        "<html><head></head><body> Did you mean to POST to /start_game? </body></html>"
+      end
+    end
   end
-
-  def header(output)
-    headers = [
-      "http/1.1 200 ok",
-      "date: #{Time.now.strftime('%a, %e %b %Y %H:%M:%S %z')}",
-      "server: ruby",
-      "content-type: text/html; charset=iso-8859-1",
-      "content-length: #{output}\r\n\r\n"].join("\r\n")
-  end
-
 
   def request(session)
     request = []
@@ -115,6 +113,15 @@ class Runner
       spec = spec.split if spec.include?(':')
       @info[spec[0]] = spec[1]
     end
+  end
+
+  def header(length)
+    headers = [
+      "http/1.1 200 ok",
+      "date: #{Time.now.strftime('%a, %e %b %Y %H:%M:%S %z')}",
+      "server: ruby",
+      "content-type: text/html; charset=iso-8859-1",
+      "content-length: #{length}\r\n\r\n"].join("\r\n")
   end
 
   def diagnostic
