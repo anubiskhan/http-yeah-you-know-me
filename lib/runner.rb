@@ -1,4 +1,5 @@
 require './lib/server.rb'
+require './lib/game.rb'
 require 'pry'
 
 class Runner
@@ -12,11 +13,12 @@ class Runner
 
   def listens
     loop do
-      session = @server.tcp_server.accept
-      request(session)
-      session.puts header(@resp.length)
-      session.puts @resp
-      session.close
+      @session = @server.tcp_server.accept
+      request(@session)
+      @session.puts header(@resp.length)
+      @session.puts @resp
+      binding.pry
+      @session.close
       break if @resp.include?('Total Requests:')
     end
   end
@@ -50,29 +52,30 @@ class Runner
     while line = session.gets and !line.chomp.empty?
       request << line.chomp
     end
+    parser(request)
     @count += 1
     # puts request.inspect
     @resp = response(request)
   end
 
   def root_response(request)
-    response = "<pre> #{parser(request)} </pre>"
+    response = "<pre> #{diagnostic} </pre>"
     "<html><head></head><body>#{response}</body></html>"
   end
 
   def hello_response(request)
-    response = "<pre> Hello World (#{@hello_count})\n #{parser(request)} </pre>"
+    response = "<pre> Hello World (#{@hello_count})\n #{diagnostic} </pre>"
     @hello_count += 1
     "<html><head></head><body>#{response}</body></html>"
   end
 
   def datetime_response(request)
-    response = "<pre> #{Time.now.strftime('%a, %e %b %Y %H:%M:%S %z')}\n #{parser(request)} </pre>"
+    response = "<pre> #{Time.now.strftime('%a, %e %b %Y %H:%M:%S %z')}\n #{diagnostic} </pre>"
     "<html><head></head><body>#{response}</body></html>"
   end
 
   def shutdown_response(request)
-    response = "<pre> Total Requests: (#{@count})\n #{parser(request)} </pre>"
+    response = "<pre> Total Requests: (#{@count})\n #{diagnostic} </pre>"
     "<html><head></head><body>#{response}</body></html>"
   end
 
@@ -83,33 +86,35 @@ class Runner
     else
       is_word = "#{word} is not a known word"
     end
-    response = "<pre> #{is_word}\n #{parser(request)} </pre>"
+    response = "<pre> #{is_word}\n #{diagnostic} </pre>"
     "<html><head></head><body>#{response}</body></html>"
   end
 
   def start_game(request)
     @game = Game.new
-    response = "<pre> Good luck!\n #{parser(request)} </pre>"
+    response = "<pre> Good luck!\n #{diagnostic} </pre>"
     "<html><head></head><body>#{response}</body></html>"
   end
 
   def game_time(request)
     if request[0].split[0] == 'POST'
-      @game.post_game(@guess)
+      @content_length = @info['Content-Length:'].to_i
+      @guess = @session.read(@content_length).split[-2].to_i
+      response = "<pre> #{@game.post_game(@guess)}\n #{diagnostic} </pre>"
     elsif request[0].split[0] == 'GET'
-      @game.get_game
+      response = "<pre> #{@game.get_game}\n #{diagnostic} </pre>"
     end
+    "<html><head></head><body>#{response}</body></html>"
   end
 
   def parser(request)
-    @vpp = request.shift
-    @host = request.shift
+    @vpp = request[0]
+    @host = request[1]
     @info = {}
     request.each do |spec|
       spec = spec.split if spec.include?(':')
       @info[spec[0]] = spec[1]
     end
-    diagnostic
   end
 
   def diagnostic

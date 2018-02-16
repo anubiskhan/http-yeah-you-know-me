@@ -14,9 +14,9 @@ class GameTest < Minitest::Test
     game = Game.new
     num = game.the_number
 
-    assert_equal "0. Too low!", game.post_game(0)
+    assert_equal '0. Too low!', game.post_game(0)
     assert_equal 1, game.guesses.length
-    assert_equal "101. Too high!", game.post_game(101)
+    assert_equal '101. Too high!', game.post_game(101)
     assert_equal 2, game.guesses.length
     assert_equal "#{num}. Correct!", game.post_game(num)
   end
@@ -25,7 +25,7 @@ class GameTest < Minitest::Test
     game = Game.new
     game.post_game(0)
     game.post_game(101)
-    
+
     assert_equal 'There have been 2 and those guesses were ["0. Too low!", "101. Too high!"]', game.get_game
   end
 end
