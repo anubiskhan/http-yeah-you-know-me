@@ -120,7 +120,7 @@ class Runner
       response = "<pre> #{@game.post_game(@guess)}\n #{diagnostic} </pre>"
     elsif request[0].split[0] == 'GET'
       redirect200
-      response = "<pre> #{@game.get_game}\n #{diagnostic} </pre>"
+      response = "<pre> #{@game.game_getter}\n #{diagnostic} </pre>"
     end
     "<html><head></head><body>#{response}</body></html>"
   end

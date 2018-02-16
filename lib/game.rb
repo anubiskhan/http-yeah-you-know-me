@@ -16,7 +16,7 @@ class Game
     thing
   end
 
-  def get_game
+  def game_getter
     "There have been #{@guesses.length} and those guesses were #{@guesses}"
   end
 end
