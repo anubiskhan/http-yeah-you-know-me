@@ -91,14 +91,8 @@ class Runner
   end
 
   def error_response(request)
-    binding.pry
     redirect500
-    begin
-      binding.pry
-      error = raise SystemStackError.new
-    rescue => error
-      response = "<pre> #{@status}\n #{error.backtrace.join("\n")} </pre>"
-    end
+    response = "<pre> #{@status}\n </pre>"
   end
 
   def not_found(request)
