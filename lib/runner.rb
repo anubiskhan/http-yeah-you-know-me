@@ -19,7 +19,6 @@ class Runner
       request(@session)
       @session.puts header(@resp.length)
       @session.puts @resp
-      binding.pry
       @session.close
       break if @resp.include?('Total Requests:')
     end
@@ -35,16 +34,10 @@ class Runner
     return datetime_response(request) if path(request) == '/datetime'
     return shutdown_response(request) if path(request) == '/shutdown'
     return word_search(request) if path(request).include? '/word_search'
-    return game_time(request) if path(request) == '/game'
     return error_response(request) if path(request) == '/force_error'
-    if path(request).include? '/start_game'
-      if @vpp.split[0] == 'POST'
-        start_game(request)
-      else
-        "<html><head></head><body> Did you mean to POST to /start_game? </body></html>"
-      end
-    end
-    return not_found(request)
+    return handle_post_game(request) if path(request).include? '/start_game'
+    return game_time(request) if path(request) == '/game'
+    not_found(request)
   end
 
   def request(session)
@@ -54,27 +47,28 @@ class Runner
     end
     parser(request)
     @count += 1
-    # puts request.inspect
+    puts request.inspect
     @resp = response(request)
   end
 
-  def root_response(request)
+  def root_response(_request)
     response = "<pre> #{diagnostic} </pre>"
     "<html><head></head><body>#{response}</body></html>"
   end
 
-  def hello_response(request)
+  def hello_response(_request)
     response = "<pre> Hello World (#{@hello_count})\n #{diagnostic} </pre>"
     @hello_count += 1
     "<html><head></head><body>#{response}</body></html>"
   end
 
-  def datetime_response(request)
-    response = "<pre> #{Time.now.strftime('%a, %e %b %Y %H:%M:%S %z')}\n #{diagnostic} </pre>"
+  def datetime_response(_request)
+    response = "<pre> #{Time.now.strftime('%a, %e %b %Y %H:%M:%S %z')}\n" +
+    "#{diagnostic} </pre>"
     "<html><head></head><body>#{response}</body></html>"
   end
 
-  def shutdown_response(request)
+  def shutdown_response(_request)
     response = "<pre> Total Requests: (#{@count})\n #{diagnostic} </pre>"
     "<html><head></head><body>#{response}</body></html>"
   end
@@ -90,21 +84,33 @@ class Runner
     "<html><head></head><body>#{response}</body></html>"
   end
 
-  def error_response(request)
+  def handle_post_game(request)
+    if @vpp.split[0] == 'POST'
+      start_game(request)
+    else
+      '<html><head></head><body> Did you mean to POST to /start_game? </body></html>'
+    end
+  end
+
+  def error_response(_request)
     redirect500
-    response = "<pre> #{@status}\n </pre>"
+    begin
+      raise 'An error that errors'
+    rescue => detail
+      "<pre>\n #{@status}\n #{detail.backtrace.join("\n")}\n </pre>"
+    end
   end
 
-  def not_found(request)
+  def not_found(_request)
     redirect404
-    response = "<pre> #{@status} </pre>"
+    "<pre> #{@status} </pre>"
   end
 
-  def start_game(request)
+  def start_game(_request)
     if @game.nil?
       redirect301
       @game = Game.new
-      response = "<pre> Good luck!\n #{diagnostic} </pre>"
+      response = "<pre>\n #{@status}\n Good luck!\n #{diagnostic} </pre>"
     else
       redirect403
       response = "<pre> #{@status}\n #{diagnostic} </pre>"
@@ -114,7 +120,7 @@ class Runner
 
   def game_time(request)
     if request[0].split[0] == 'POST'
-      redirect301
+      redirect302
       @content_length = @info['Content-Length:'].to_i
       @guess = @session.read(@content_length).split[-2].to_i
       response = "<pre> #{@game.post_game(@guess)}\n #{diagnostic} </pre>"
@@ -131,7 +137,12 @@ class Runner
   end
 
   def redirect301
-    @status = '301'
+    @status = '301 Moved Permanently'
+    @redirect_path = nil
+  end
+
+  def redirect302
+    @status = '302'
     @redirect_path = '/game'
   end
 
@@ -161,12 +172,11 @@ class Runner
   end
 
   def header(length)
-    headers = [
-      "http/1.1 #{@status}",
+    [ "http/1.1 #{@status}",
       "Location: #{@redirect_path}",
       "date: #{Time.now.strftime('%a, %e %b %Y %H:%M:%S %z')}",
-      "server: ruby",
-      "content-type: text/html; charset=iso-8859-1",
+      'server: ruby',
+      'content-type: text/html; charset=iso-8859-1',
       "content-length: #{length}\r\n\r\n"].join("\r\n")
   end
 
@@ -181,4 +191,4 @@ class Runner
   end
 end
 
-runner = Runner.new
+Runner.new
