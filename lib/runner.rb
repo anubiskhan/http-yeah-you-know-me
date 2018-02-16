@@ -35,8 +35,8 @@ class Runner
     return shutdown_response(request) if path(request) == '/shutdown'
     return word_search(request) if path(request).include? '/word_search'
     return error_response(request) if path(request) == '/force_error'
-    return game_time(request) if path(request) == '/game'
     return handle_post_game(request) if path(request).include? '/start_game'
+    return game_time(request) if path(request) == '/game'
     not_found(request)
   end
 
@@ -63,7 +63,8 @@ class Runner
   end
 
   def datetime_response(_request)
-    response = "<pre> #{Time.now.strftime('%a, %e %b %Y %H:%M:%S %z')}\n #{diagnostic} </pre>"
+    response = "<pre> #{Time.now.strftime('%a, %e %b %Y %H:%M:%S %z')}\n" +
+    "#{diagnostic} </pre>"
     "<html><head></head><body>#{response}</body></html>"
   end
 
@@ -93,7 +94,11 @@ class Runner
 
   def error_response(_request)
     redirect500
-    "<pre> #{@status}\n </pre>"
+    begin
+      raise 'An error that errors'
+    rescue => detail
+      "<pre>\n #{@status}\n #{detail.backtrace.join("\n")}\n </pre>"
+    end
   end
 
   def not_found(_request)
