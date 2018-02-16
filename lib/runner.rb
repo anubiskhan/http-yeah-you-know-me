@@ -89,6 +89,7 @@ class Runner
   end
 
   def start_game(request)
+    redirect
     @game = Game.new
     response = "<pre> Good luck!\n #{diagnostic} </pre>"
     "<html><head></head><body>#{response}</body></html>"
@@ -96,13 +97,25 @@ class Runner
 
   def game_time(request)
     if request[0].split[0] == 'POST'
+      redirect
       @content_length = @info['Content-Length:'].to_i
       @guess = @session.read(@content_length).split[-2].to_i
       response = "<pre> #{@game.post_game(@guess)}\n #{diagnostic} </pre>"
     elsif request[0].split[0] == 'GET'
+      fundirect
       response = "<pre> #{@game.get_game}\n #{diagnostic} </pre>"
     end
     "<html><head></head><body>#{response}</body></html>"
+  end
+
+  def redirect
+    @status = '302'
+    @redirect_path = '/game'
+  end
+
+  def fundirect
+    @status = '200 ok'
+    @location = nil
   end
 
   def parser(request)
@@ -117,7 +130,8 @@ class Runner
 
   def header(length)
     headers = [
-      "http/1.1 200 ok",
+      "http/1.1 #{@status}",
+      "Location: #{@redirect_path}",
       "date: #{Time.now.strftime('%a, %e %b %Y %H:%M:%S %z')}",
       "server: ruby",
       "content-type: text/html; charset=iso-8859-1",
